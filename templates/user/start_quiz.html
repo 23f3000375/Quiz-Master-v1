@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Start the Quiz - Quiz Master">
+    <title>Start the Quiz - Quiz Master</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #343a40;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #6c757d;
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.25rem;
+            font-weight: 600;
+        }
+
+        .content {
+            flex: 1 0 auto;
+            padding: 4rem 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .quiz-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+            max-width: 700px;
+            width: 100%;
+            border: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        h2 {
+            color: #007bff;
+            margin-bottom: 2rem;
+            font-weight: 500;
+            font-size: 1.75rem;
+        }
+
+        .question-meta {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .question-number, .timer {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .question-number {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .timer {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .timer.time-up {
+            background-color: #dc3545;
+        }
+
+        .question {
+            margin: 2rem 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #343a40;
+        }
+
+        .options {
+            text-align: left;
+            margin: 2rem auto;
+            width: 80%;
+        }
+
+        .options label {
+            display: block;
+            margin: 1rem 0;
+            font-size: 1rem;
+            color: #495057;
+            cursor: pointer;
+        }
+
+        .options input[type="radio"] {
+            margin-right: 0.75rem;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-custom {
+            background-color: #007bff;
+            color: white;
+            padding: 0.9rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-custom:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-submit {
+            background-color: #28a745;
+            color: white;
+            padding: 0.9rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .btn-submit:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        footer {
+            background-color: #6c757d;
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            .quiz-container {
+                padding: 2rem;
+            }
+
+            .content {
+                padding: 3rem 1rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            .question {
+                font-size: 1.1rem;
+            }
+
+            .options label {
+                font-size: 0.95rem;
+            }
+
+            .question-number, .timer {
+                font-size: 0.9rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .btn-custom, .btn-submit {
+                font-size: 1rem;
+                padding: 0.8rem 1.2rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .quiz-container {
+                padding: 1.5rem;
+            }
+
+            .content {
+                padding: 2rem 1rem;
+            }
+
+            header h1 {
+                font-size: 1.75rem;
+            }
+
+            .question-meta {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .options {
+                width: 100%;
+            }
+
+            .buttons {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .btn-custom, .btn-submit {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-brain me-2"></i>Quiz Master</h1>
+        </div>
+    </header>
+
+    <main class="content">
+        <div class="quiz-container">
+            <h2>Start the Quiz</h2>
+            <div class="question-meta">
+                <span class="question-number">Q.No.: {{ current_question }}/{{ total_questions }}</span>
+                <span class="timer" id="timer"><i class="fas fa-clock me-1"></i>{{ timer }}</span>
+            </div>
+            <p class="question">{{ question.text }}</p>
+            <form method="POST" action="/start_quiz/{{ quiz_id }}" class="needs-validation" novalidate id="quiz-form">
+                <div class="options">
+                    <label>
+                        <input type="radio" name="answer" value="A" required> {{ question.options[0] }}
+                    </label>
+                    <label>
+                        <input type="radio" name="answer" value="B" required> {{ question.options[1] }}
+                    </label>
+                    <label>
+                        <input type="radio" name="answer" value="C" required> {{ question.options[2] }}
+                    </label>
+                    <label>
+                        <input type="radio" name="answer" value="D" required> {{ question.options[3] }}
+                    </label>
+                    <div class="invalid-feedback">Please select an option.</div>
+                </div>
+                <div class="buttons">
+                    {% if current_question < total_questions %}
+                    <button type="submit" name="action" value="save_next" class="btn-custom">
+                        <i class="fas fa-arrow-right me-2"></i>Save and Next
+                    </button>
+                    {% endif %}
+                    <button type="submit" name="action" value="submit" class="btn-submit">
+                        <i class="fas fa-check me-2"></i>Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p class="mb-0">© 2025 Quiz Master. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    <script>
+        // Bootstrap form validation
+        (() => {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+
+        // Timer logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const timerElement = document.getElementById('timer');
+            let remainingSeconds = {{ remaining_seconds }}; // Backend se remaining seconds pass karenge
+
+            const updateTimer = () => {
+                if (remainingSeconds <= 0) {
+                    timerElement.textContent = '00:00';
+                    timerElement.classList.add('time-up');
+                    // Automatically submit the form when time is up
+                    document.getElementById('quiz-form').submit();
+                    return;
+                }
+
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                remainingSeconds--;
+
+                // Update timer every second
+                setTimeout(updateTimer, 1000);
+            };
+
+            // Start the timer
+            updateTimer();
+        });
+    </script>
+</body>
+</html>

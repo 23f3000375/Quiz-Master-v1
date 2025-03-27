@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Summary Charts - Quiz Master">
+    <title>Summary Charts - Quiz Master</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: #6c757d;
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.25rem;
+            font-weight: 600;
+        }
+
+        .navbar-custom {
+            background-color: #6c757d;
+        }
+
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link {
+            color: #006400;
+            font-weight: bold;
+        }
+
+        .navbar-custom .nav-link:hover {
+            text-decoration: underline;
+        }
+
+        .navbar-custom .navbar-text {
+            color: #006400;
+            font-weight: bold;
+        }
+
+        .content {
+            flex: 1 0 auto;
+        }
+
+        .header-title {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .chart-card {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        footer {
+            background-color: #6c757d;
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 576px) {
+            header h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-brain me-2"></i>Quiz Master</h1>
+        </div>
+    </header>
+
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="/">Home</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/quiz">Quiz</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/summary">Summary</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Logout</a>
+                    </li>
+                </ul>
+                <span class="navbar-text">Welcome Admin</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="container my-4">
+            <h1 class="header-title">Summary Charts</h1>
+            <div class="row">
+              
+                <div class="col-md-6">
+                    <div class="chart-card">
+                        <h2 class="chart-title">Subject-wise Top Scores</h2>
+                        <canvas id="topScoresChart"></canvas>
+                    </div>
+                </div>
+            
+                <div class="col-md-6">
+                    <div class="chart-card">
+                        <h2 class="chart-title">Subject-wise User Attempts</h2>
+                        <canvas id="userAttemptsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p class="mb-0">© 2025 Quiz Master. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+   
+        const topScoresData = {{ top_scores_data | tojson }};
+        const userAttemptsData = {{ user_attempts_data | tojson }};
+
+      
+        const ctx1 = document.getElementById('topScoresChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: topScoresData.labels,
+                datasets: [{
+                    label: 'Top Scores',
+                    data: topScoresData.values,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        
+        const ctx2 = document.getElementById('userAttemptsChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: userAttemptsData.labels,
+                datasets: [{
+                    label: 'User Attempts',
+                    data: userAttemptsData.values,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.6)',
+                        'rgba(54, 162, 235, 0.6)',
+                        'rgba(255, 206, 86, 0.6)',
+                        'rgba(75, 192, 192, 0.6)',
+                        'rgba(153, 102, 255, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    </script>
+   
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
+
