@@ -164,7 +164,7 @@
         <div class="container my-4">
             <h1 class="header-title">User Dashboard</h1>
 
-            <h2 class="text-center mb-4">Upcoming Quizzes</h2>
+            <h2 class="text-center mb-4">Quizzes</h2>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped">
                     <thead>
@@ -182,7 +182,7 @@
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>{{ quiz.num_questions }}</td>
-                                <td>{{ quiz.date }}</td> <!-- Use the formatted date from formatted_quizzes -->
+                                <td>{{ quiz.date }}</td> 
                                 <td>{{ quiz.duration }}</td>
                                 <td>
                                     <div class="d-flex gap-2 justify-content-center">

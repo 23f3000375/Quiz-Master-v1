@@ -1,0 +1,223 @@
+openapi: 3.0.0
+info:
+  title: Quiz Master API
+  description: RESTful API for managing quizzes, users, and scores
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+paths:
+  /login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Successful login, redirects to dashboard
+        '400':
+          description: Invalid credentials or missing fields
+
+  /register:
+    post:
+      summary: User registration
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                full_name:
+                  type: string
+                qualification:
+                  type: string
+                dob:
+                  type: string
+                  format: date
+              required:
+                - username
+                - password
+                - dob
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Username exists or invalid data
+
+  /logout:
+    get:
+      summary: User logout
+      responses:
+        '200':
+          description: Logged out, redirects to home
+
+  /admin/subject/new:
+    post:
+      summary: Add new subject (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+              required:
+                - name
+      responses:
+        '201':
+          description: Subject added
+        '403':
+          description: Unauthorized access
+
+  /admin/quiz/new:
+    post:
+      summary: Create new quiz (Admin only)
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                quiz_title:
+                  type: string
+                chapter_id:
+                  type: integer
+                date:
+                  type: string
+                  format: date
+                duration:
+                  type: string
+                remarks:
+                  type: string
+              required:
+                - quiz_title
+                - chapter_id
+                - date
+                - duration
+      responses:
+        '201':
+          description: Quiz created
+        '403':
+          description: Unauthorized access
+
+  /add_question/{quiz_id}:
+    post:
+      summary: Add question to a quiz (Admin only)
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                question_statement:
+                  type: string
+                option1:
+                  type: string
+                option2:
+                  type: string
+                option3:
+                  type: string
+                option4:
+                  type: string
+                correct_option:
+                  type: string
+                  enum: ['A', 'B', 'C', 'D']
+              required:
+                - question_statement
+                - option1
+                - option2
+                - option3
+                - option4
+                - correct_option
+      responses:
+        '201':
+          description: Question added
+        '403':
+          description: Unauthorized access
+
+  /start_quiz/{quiz_id}:
+    get:
+      summary: Start a quiz (User only)
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Quiz started, renders quiz page
+        '404':
+          description: Quiz not found
+
+    post:
+      summary: Submit quiz answers (User only)
+      parameters:
+        - name: quiz_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                answer:
+                  type: string
+                  enum: ['A', 'B', 'C', 'D']
+                action:
+                  type: string
+                  enum: ['next', 'submit']
+      responses:
+        '200':
+          description: Answer submitted, next question or quiz completed
+
+  /scores:
+    get:
+      summary: View user scores
+      responses:
+        '200':
+          description: Returns list of user scores
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: session
+security:
+  - sessionAuth: []

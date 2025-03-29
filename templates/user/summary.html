@@ -186,6 +186,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             {% if scores_chart.labels %}
+            
             // Scores Chart
             const scoresCtx = document.getElementById('scoresChart').getContext('2d');
             new Chart(scoresCtx, {
@@ -221,6 +222,7 @@
             {% endif %}
 
             {% if attempts_chart.labels %}
+            
             // Attempts Chart
             const attemptsCtx = document.getElementById('attemptsChart').getContext('2d');
             new Chart(attemptsCtx, {

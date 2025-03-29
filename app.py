@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, time, timedelta
 import logging
 
-# Configure logging
+# Logging configure krne ke liye
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -32,11 +32,16 @@ class User(db.Model, UserMixin):
     dob = db.Column(db.Date)
     role = db.Column(db.String(50), default='user')
 
+    scores = db.relationship('Score', backref='user', lazy=True)
+
+
 class Subject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), unique=True, nullable=False)
     description = db.Column(db.Text)
+
     chapters = db.relationship('Chapter', backref='subject', lazy=True)
+
 
 class Chapter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,15 +49,20 @@ class Chapter(db.Model):
     description = db.Column(db.Text)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
 
+    quizzes = db.relationship('Quiz', backref='chapter', lazy=True)
+
+
 class Quiz(db.Model):
-    __tablename__ = 'quiz'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     chapter_id = db.Column(db.Integer, db.ForeignKey('chapter.id'), nullable=False)
     date_of_quiz = db.Column(db.Date, nullable=False)
     duration = db.Column(db.Time, nullable=False)
     remarks = db.Column(db.String, nullable=True)
-    chapter = db.relationship('Chapter', backref=db.backref('quizzes', lazy=True))
+   
+    questions = db.relationship('Question', backref='quiz', lazy=True)
+    scores = db.relationship('Score', backref='quiz', lazy=True)
+
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -62,19 +72,18 @@ class Question(db.Model):
     option2 = db.Column(db.String(200), nullable=False)
     option3 = db.Column(db.String(200), nullable=False)
     option4 = db.Column(db.String(200), nullable=False)
-    correct_option = db.Column(db.String(1), nullable=False)  # 'A', 'B', 'C', 'D'
-    quiz = db.relationship('Quiz', backref=db.backref('questions', lazy=True))
+    correct_option = db.Column(db.String(1), nullable=False) 
 
 class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
     total_score = db.Column(db.Integer)
 
 @login_manager.user_loader
 def load_current_user(user_id):
-    return db.session.get(User, int(user_id))  # Fixed LegacyAPIWarning
+    return db.session.get(User, int(user_id))  # Fixed LegacyAPIWarning yha se 
 
 @app.route('/')
 def index():
@@ -157,7 +166,7 @@ def admin_quiz_view():
     quiz_entries = db.session.query(Quiz, Chapter, Subject) \
         .join(Chapter, Quiz.chapter_id == Chapter.id) \
         .join(Subject, Chapter.subject_id == Subject.id).all()
-    # Format the data for the template
+    
     formatted_quizzes = []
     for quiz, chapter, subject in quiz_entries:
         formatted_quizzes.append({
@@ -236,18 +245,18 @@ def modify_subject(subject_id):
         new_name = request.form.get('subject_name')
         new_description = request.form.get('subject_description')
         
-        # Validation: Check if name is empty
+        # Validation: Check krte hai agr name khaali hai to
         if not new_name:
             flash('Subject name is required.', 'danger')
             return render_template('admin/edit_subject.html', subject=subj)
         
-        # Check for duplicate subject name
+        # Check krenge duplicate subject name ke liye
         existing_subject = Subject.query.filter(Subject.name == new_name, Subject.id != subject_id).first()
         if existing_subject:
             flash('A subject with this name already exists.', 'danger')
             return render_template('admin/edit_subject.html', subject=subj)
         
-        # Update subject details
+        # Subject details update krenge
         subj.name = new_name
         subj.description = new_description
         
@@ -412,21 +421,30 @@ def modify_quiz(quiz_id):
 def add_question(quiz_id):
     if current_user.role != 'admin':
         return redirect(url_for('index'))
-    quiz = Quiz.query.get_or_404(quiz_id)
+    quiz = Quiz.query.get_or_404(quiz_id) 
     if request.method == 'POST':
-        question_title = request.form.get('question_title')
         question_statement = request.form.get('question_statement')
         option1 = request.form.get('option1')
         option2 = request.form.get('option2')
         option3 = request.form.get('option3')
         option4 = request.form.get('option4')
         correct_option = request.form.get('correct_option')
-        if not all([question_title, question_statement, option1, option2, option3, option4, correct_option]):
+        
+        # Check krne ke liye ki saari fields present hai
+        if not all([question_statement, option1, option2, option3, option4, correct_option]):
             flash('All fields are required.', 'danger')
             return render_template('admin/new_question.html', quiz_id=quiz_id)
+        
+        # Do options check krne ke liye. Agr ek se jyada option hai to save changes pe click krne pe automatically uss page ko reload krega ek warning ke saath
+        options = [option1, option2, option3, option4]
+        if len(options) != len(set(options)):
+            flash('All options must be unique. Please provide distinct values for each option.', 'danger')
+            return render_template('admin/new_question.html', quiz_id=quiz_id)
+        
         if correct_option not in ['A', 'B', 'C', 'D']:
             flash('Invalid correct option selected.', 'danger')
             return render_template('admin/new_question.html', quiz_id=quiz_id)
+        
         try:
             new_question = Question(
                 quiz_id=quiz_id,
@@ -462,11 +480,11 @@ def manage_questions(quiz_id):
 
 @app.route('/edit_question/<int:question_id>', methods=['GET', 'POST'])
 @login_required
-def update_question(question_id):
+def edit_question(question_id):
     if current_user.role != 'admin':
         return redirect(url_for('index'))
     question = Question.query.get_or_404(question_id)
-    quiz_id = question.quiz_id
+    quiz = Quiz.query.get_or_404(question.quiz_id)  
     if request.method == 'POST':
         question_statement = request.form.get('question_statement')
         option1 = request.form.get('option1')
@@ -474,14 +492,23 @@ def update_question(question_id):
         option3 = request.form.get('option3')
         option4 = request.form.get('option4')
         correct_option = request.form.get('correct_option')
+        
         if not all([question_statement, option1, option2, option3, option4, correct_option]):
             flash('All fields are required.', 'danger')
-            return render_template('admin/edit_question.html', question=question)
+            return render_template('admin/edit_question.html', question=question, quiz=quiz)
+        
+        # Check for duplicate options
+        options = [option1, option2, option3, option4]
+        if len(options) != len(set(options)):
+            flash('All options must be unique. Please provide distinct values for each option.', 'danger')
+            return render_template('admin/edit_question.html', question=question, quiz=quiz)
+        
         option_mapping = {'1': 'A', '2': 'B', '3': 'C', '4': 'D'}
         correct_option = option_mapping.get(correct_option, correct_option)
         if correct_option not in ['A', 'B', 'C', 'D']:
             flash('Invalid correct option selected.', 'danger')
-            return render_template('admin/edit_question.html', question=question)
+            return render_template('admin/edit_question.html', question=question, quiz=quiz)
+        
         try:
             question.question_statement = question_statement
             question.option1 = option1
@@ -491,11 +518,13 @@ def update_question(question_id):
             question.correct_option = correct_option
             db.session.commit()
             flash('Question updated successfully.', 'success')
-            return redirect(url_for('manage_questions', quiz_id=quiz_id))
+            return redirect(url_for('manage_questions', quiz_id=quiz.id))
         except Exception as e:
             db.session.rollback()
             flash(f'Error updating question: {str(e)}', 'danger')
-    return render_template('admin/edit_question.html', question=question)
+    
+    # This return statement was missing for GET requests
+    return render_template('admin/edit_question.html', question=question, quiz=quiz)
 
 @app.route('/delete_question/<int:question_id>', methods=['POST'])
 @login_required
@@ -516,7 +545,9 @@ def delete_question(question_id):
 @app.route('/delete_quiz/<int:quiz_id>', methods=['POST'])
 @login_required
 def remove_quiz(quiz_id):
+    print(f"Attempting to delete quiz ID: {quiz_id} by user: {current_user.id}")
     if current_user.role != 'admin':
+        print("User not admin, redirecting to index")
         return redirect(url_for('index'))
     quiz_entry = Quiz.query.get_or_404(quiz_id)
     try:
@@ -548,7 +579,7 @@ def search_admin():
         .join(Chapter, Quiz.chapter_id == Chapter.id) \
         .join(Subject, Chapter.subject_id == Subject.id) \
         .filter(db.or_(
-            Quiz.title.ilike(f"%{term}%"),  # Added Quiz.title to the search condition
+            Quiz.title.ilike(f"%{term}%"),  
             Quiz.remarks.ilike(f"%{term}%"),
             Chapter.name.ilike(f"%{term}%"),
             Subject.name.ilike(f"%{term}%")
@@ -580,7 +611,7 @@ def user_dashboard():
     if current_user.role == 'admin':
         return redirect(url_for('admin_dashboard'))
     search_term = request.args.get('search', '').strip()
-    today = date.today()  # Fixed the error
+    today = date.today()  
     quiz_query = db.session.query(
         Quiz.id.label('id'),
         db.func.count(Question.id).label('num_questions'),
@@ -619,7 +650,7 @@ def attempt_quiz(quiz_id):
         flash("No questions available for this quiz.", "warning")
         return redirect(url_for('user_dashboard'))
 
-    # Initialize quiz session if not already started
+  
     if 'quiz_start_time' not in session or session.get('current_quiz_id') != quiz_id:
         try:
             total_seconds = quiz_item.duration.hour * 3600 + quiz_item.duration.minute * 60 + (quiz_item.duration.second if quiz_item.duration.second else 0)
@@ -631,7 +662,7 @@ def attempt_quiz(quiz_id):
             flash('Invalid quiz duration. Please contact the admin.', 'danger')
             return redirect(url_for('user_dashboard'))
 
-    # Calculate remaining time
+   # bacha hua samay calculate krne ke liye
     try:
         duration_sec = int(session.get('quiz_duration', 0))
         start_time = datetime.fromisoformat(session['quiz_start_time'])
@@ -643,9 +674,9 @@ def attempt_quiz(quiz_id):
 
     if remaining <= 0:
         flash("Time's up! Quiz submitted automatically.", "danger")
-        # Save score before redirecting
+        # score save krte hai redirect krne se pahle
         progress = session.get('quiz_progress', {})
-        score = int(progress.get('score', 0))  # Ensure score is an integer
+        score = int(progress.get('score', 0))  
         new_score = Score(
             quiz_id=quiz_id,
             user_id=current_user.id,
@@ -660,9 +691,8 @@ def attempt_quiz(quiz_id):
         return redirect(url_for('user_dashboard'))
 
     progress = session.get('quiz_progress', {})
-    # Ensure current_question_index is an integer
+
     current_idx = int(progress.get('current_question_index', 0))
-    # Ensure score is an integer
     progress['score'] = int(progress.get('score', 0))
 
     if current_idx >= len(all_questions):
@@ -687,8 +717,7 @@ def attempt_quiz(quiz_id):
         
         if answer:
             if answer == curr_question.correct_option:
-                progress['score'] = progress['score'] + 1  # Already an integer
-            # Convert curr_question.id to string to avoid int-str comparison issues during serialization
+                progress['score'] = progress['score'] + 1  
             progress['answered_questions'][str(curr_question.id)] = answer
         
         if action == 'submit' or current_idx == len(all_questions) - 1:
@@ -729,10 +758,7 @@ def attempt_quiz(quiz_id):
 @app.route('/scores')
 @login_required
 def view_scores():
-    # Get current time to compare with quiz deadlines
-    current_time = datetime.now()
 
-    # Fetch scores along with quiz details
     score_records = db.session.query(
         Score.quiz_id,
         Score.timestamp,
@@ -747,24 +773,13 @@ def view_scores():
 
     scores_list = []
     for rec in score_records:
-        # Calculate quiz deadline (quiz date + duration)
-        quiz_start_date = rec.date_of_quiz  # This is a datetime.date object
-        # Convert quiz_start_date to datetime.datetime by adding a time component (00:00:00)
-        quiz_start = datetime.combine(quiz_start_date, time(0, 0))  # Converts to datetime.datetime
-        duration = rec.duration
-        # Convert duration to timedelta
-        duration_seconds = duration.hour * 3600 + duration.minute * 60 + (duration.second if duration.second else 0)
-        quiz_deadline = quiz_start + timedelta(seconds=duration_seconds)  # Now quiz_deadline is a datetime.datetime
-
-        # Only include scores if the quiz deadline has passed
-        if current_time > quiz_deadline:
-            scores_list.append({
-                "quiz_id": rec.quiz_id,
-                "date": rec.timestamp.strftime("%d/%m/%Y"),
-                "num_questions": rec.num_questions,
-                "total_score": rec.total_score,
-                "total_possible_score": rec.num_questions  # Assuming 1 point per question
-            })
+        scores_list.append({
+            "quiz_id": rec.quiz_id,
+            "date": rec.timestamp.strftime("%d/%m/%Y"),
+            "num_questions": rec.num_questions,
+            "total_score": rec.total_score,
+            "total_possible_score": rec.num_questions 
+        })
 
     return render_template('user/scores.html', scores=scores_list, user_name=current_user.full_name)
 
@@ -778,7 +793,7 @@ def user_summary():
     try:
         logger.debug(f"Current user: {current_user.id}, role: {current_user.role}")
         
-        # Step 1: Fetch subject-wise total scores
+   
         logger.debug("Step 1: Fetching subject-wise total scores...")
         subjects = db.session.query(Subject).count()
         chapters = db.session.query(Chapter).count()
@@ -799,7 +814,7 @@ def user_summary():
              .group_by(Subject.name).all()
         logger.debug(f"Subject scores: {subject_scores}")
 
-        # Step 2: Fetch month-wise quiz attempts
+        
         logger.debug("Step 2: Fetching month-wise quiz attempts...")
         score_entries = db.session.query(Score).filter(Score.user_id == current_user.id).all()
         logger.debug(f"Score entries for user: {[(s.id, s.timestamp) for s in score_entries]}")
@@ -816,58 +831,56 @@ def user_summary():
              .group_by(db.func.strftime('%Y-%m', Score.timestamp)).all()
         logger.debug(f"Month attempts: {month_attempts}")
 
-        # Step 3: If no data, flash a message
+
         logger.debug("Step 3: Checking if data exists...")
         if not subject_scores and not month_attempts:
             logger.debug("No data found for charts, flashing message...")
             flash("No quiz attempts found. Please attempt some quizzes to see summary data.", "info")
 
-        # Step 4: Format data for charts with strict type conversion
+     
         logger.debug("Step 4: Formatting data for charts...")
-        scores_labels = [str(s[0]) for s in subject_scores] if subject_scores else []  # Ensure labels are strings
+        scores_labels = [str(s[0]) for s in subject_scores] if subject_scores else []  
         scores_values = []
         for s in subject_scores:
             value = s[1]
             if value is not None:
                 try:
-                    scores_values.append(float(value))  # Convert to float
+                    scores_values.append(float(value)) 
                 except (ValueError, TypeError) as e:
                     logger.warning(f"Invalid score value: {value}, using 0 instead. Error: {str(e)}")
                     scores_values.append(0.0)
             else:
                 scores_values.append(0.0)
 
-        attempts_labels = [str(a[0]) for a in month_attempts] if month_attempts else []  # Ensure labels are strings
+        attempts_labels = [str(a[0]) for a in month_attempts] if month_attempts else [] 
         attempts_values = []
         for a in month_attempts:
             value = a[1]
             try:
-                attempts_values.append(int(value))  # Convert to int
+                attempts_values.append(int(value))  
             except (ValueError, TypeError) as e:
                 logger.warning(f"Invalid attempt value: {value}, using 0 instead. Error: {str(e)}")
                 attempts_values.append(0)
 
-        # Step 5: Convert values to JSON strings manually
+    
         import json
         scores_chart = {
             "labels": scores_labels,
             "values": scores_values,
-            "values_json": json.dumps(scores_values)  # Pre-convert to JSON string
+            "values_json": json.dumps(scores_values) 
         }
         attempts_chart = {
             "labels": attempts_labels,
             "values": attempts_values,
-            "values_json": json.dumps(attempts_values)  # Pre-convert to JSON string
+            "values_json": json.dumps(attempts_values) 
         }
         logger.debug(f"Scores chart: {scores_chart}")
         logger.debug(f"Attempts chart: {attempts_chart}")
 
-        # Step 6: Ensure user_name is available
         logger.debug("Step 6: Fetching user name...")
-        user_name = str(getattr(current_user, 'full_name', 'User'))  # Ensure user_name is a string
+        user_name = str(getattr(current_user, 'full_name', 'User'))  
         logger.debug(f"User name: {user_name}")
 
-        # Step 7: Render the template
         logger.debug("Step 7: Rendering summary.html...")
         return render_template('user/summary.html', 
                               scores_chart=scores_chart, 
@@ -888,7 +901,7 @@ def search_user():
         flash("Please enter a search term.", "warning")
         return redirect(url_for('user_dashboard'))
 
-    # Search quizzes by subject, chapter, date, and scores
+    # Quiz search kro by subject, chapter, date, and scores se 
     quizzes_query = db.session.query(
         Quiz, Chapter, Subject, Score
     ).join(Chapter, Quiz.chapter_id == Chapter.id) \
@@ -903,7 +916,6 @@ def search_user():
         )
     ).all()
 
-    # Format the search results
     search_results = []
     for quiz, chapter, subject, score in quizzes_query:
         num_questions = Question.query.filter_by(quiz_id=quiz.id).count()
@@ -925,7 +937,7 @@ def view_quiz(quiz_id):
     chapter = Chapter.query.get(quiz.chapter_id)
     subject = Subject.query.get(chapter.subject_id)
     questions = Question.query.filter_by(quiz_id=quiz_id).all()
-    num_questions = len(questions)  # Calculate number of questions
+    num_questions = len(questions)  # number of questions count krega
     return render_template('user/view_quiz.html',
                           quiz=quiz,
                           chapter=chapter,
